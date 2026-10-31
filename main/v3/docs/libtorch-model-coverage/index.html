@@ -1210,6 +1210,10 @@ exact-length biased attention without padded token activations.</p>
 <td>Packed GQA, sliding windows, YaRN</td>
 </tr>
 <tr>
+<td>NVIDIA Nemotron 3 / 3.5 Embed 1B / 8B</td>
+<td>Bidirectional Ministral3, model-dtype mean pooling; 3.5 adds Pixtral images and native retrieval prefixes; <a href="../nemotron-embeddings/">usage and parity checks</a></td>
+</tr>
+<tr>
 <td>Mistral3 / Ministral 3 multimodal</td>
 <td>Pixtral vision, 2D rotary positions, spatial patch merger/projector, packed Ministral text</td>
 </tr>
@@ -1231,7 +1235,7 @@ exact-length biased attention without padded token activations.</p>
 </tr>
 <tr>
 <td>Gemma3 text</td>
-<td>Packed local/global attention, Gemma norm semantics</td>
+<td>Packed local/global attention, Gemma norm semantics, linear full-attention RoPE scaling; sentence or last-token pooling</td>
 </tr>
 <tr>
 <td>NVIDIA Nemotron ColEmbed V2 4B / 8B</td>
@@ -1275,7 +1279,11 @@ calibrated answers and question splitting on <code>/v1/systemone</code>. Start w
 Unknown custom checkpoint modules and incomplete or ambiguous media towers are
 rejected. Gemma3 is text-only; EmbeddingGemma2 includes image/audio towers when
 present. The official Gemma4 checkpoint has no audio tower. Qwen3-VL requires
-last-token pooling.</p>
+last-token pooling. Gemma3 embedding checkpoints that use last-token pooling,
+such as <code>tencent/KaLM-Embedding-Gemma3-12B-2511</code>, are served through the same
+text path; its <a href="https://huggingface.co/tencent/KaLM-Embedding-Gemma3-12B-2511/blob/main/LICENSE.txt">Tencent KaLM community license</a>
+is not intended for use within the European Union, so review the checkpoint's
+license before deployment.</p>
 <p>ColBERT checkpoints declaring <code>HF_ColBERT</code> return one matrix per input on
 <code>/embeddings</code>, <code>/v1/embeddings</code>, <code>/embed</code>, and <code>/embed_all</code>. Rows contain token
 vectors, not a pooled sentence embedding. Float, base64-per-row, and tensor
@@ -1291,10 +1299,8 @@ support. Bidirectional, media and typed decision requests reject folded inputs.
 CUDA attention requires FP16 or BF16; CPU uses FP32. MPS and XPU are not supported.
 GPU replicas each load a complete model; they do not shard its weights.</p>
 <p>Synthetic native and Rust fixtures exercise model paths, heads and sequence
-isolation. Some Candle model/head combinations cannot execute the corresponding
-packed request, so a direct Candle comparison is unavailable for those cases.
-The latency target remains within 5% of Candle for comparable workloads; this PR
-does not claim that target for every model, checkpoint, precision or GPU.</p>
+isolation. Independent Transformers references cover supported numerical paths;
+latency depends on the model, checkpoint, precision and GPU.</p>
 <p>ColQwen3 uses the same matrix response formats as ColBERT. Supply the trained
 query suffix (ten <code>&lt;|endoftext|&gt;</code> tokens) in text inputs. For image documents, use
 a user conversation with an image and <code>Describe the image.</code>; the processor ends

@@ -660,6 +660,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#vela3-core-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vela3 core decisions
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1626,6 +1637,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#vela3-core-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vela3 core decisions
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1781,7 +1803,7 @@ same flags to <code>infinity_v3</code>. Tables use BF16 compute unless a row spe
 different <code>--dtype</code>; replace the common dtype flag in that case. Checkpoint
 storage precision does not set compute precision.
 For CPU, use a LibTorch CPU build, <code>--torch-device cpu</code> and <code>--dtype float32</code>.
-The published <code>cpu-*</code> image uses Candle and has different model coverage.</p>
+CPU builds from current <code>main</code> use LibTorch; CUDA-only kernels and dynamic FP8 require the NVIDIA image.</p>
 <p><code>--max-batch-tokens</code> is the total batch capacity, not a model's context length or
 a memory guarantee. These are starting configurations: lower the budget for
 smaller GPUs and leave room for activations, media tokens and warmup.
@@ -1810,6 +1832,8 @@ checkpoint's instruction format (<code>Instruct: ...\nQuery: ...</code>); docume
 ordinary text. E5 v2 and non-instruct multilingual E5 use <code>query:</code> and
 <code>passage:</code> prefixes, including for non-English text. E5-Mistral, multilingual
 E5 large instruct and GTE-Qwen2 use their model-card instruction/query formats.
+Harrier queries also use the <code>Instruct: ...\nQuery: ...</code> format; documents use
+their ordinary text.
 Jina code models distinguish code and text retrieval tasks through their trained
 prompts. Nomic v1 uses the same task-prefix convention as v1.5.
 GTE, BGE, Snowflake and Mixedbread also have model-specific
@@ -1819,7 +1843,9 @@ do not also insert the same prefix manually.</p>
 <p>Perplexity Embed v1 supports floating-point output only; contextual variants are
 unsupported. BGE-M3 here provides dense embeddings. Nemotron Embed 3 supports
 text; 3.5 additionally supports document images. Use their query/document
-instructions and checkpoint formatting; they are separate from Nemotron ColEmbed.</p>
+instructions and checkpoint formatting; they are separate from Nemotron ColEmbed.
+See <a href="../nemotron-embeddings/">Nemotron embedding configuration</a> for named prefixes
+and text/image request formats.</p>
 <table>
 <thead>
 <tr>
@@ -1957,6 +1983,21 @@ instructions and checkpoint formatting; they are separate from Nemotron ColEmbed
 <tr>
 <td><a href="https://huggingface.co/jinaai/jina-embeddings-v2-small-en">jinaai/jina-embeddings-v2-small-en</a></td>
 <td>Jina BERT/ALiBi + sentence pooling</td>
+<td><code>--max-batch-tokens 8192</code></td>
+</tr>
+<tr>
+<td><a href="https://huggingface.co/microsoft/harrier-oss-v1-270m">microsoft/harrier-oss-v1-270m</a></td>
+<td>Gemma3 text + last-token pooling</td>
+<td><code>--max-batch-tokens 8192</code></td>
+</tr>
+<tr>
+<td><a href="https://huggingface.co/microsoft/harrier-oss-v1-0.6b">microsoft/harrier-oss-v1-0.6b</a></td>
+<td>Qwen3 + last-token pooling</td>
+<td><code>--max-batch-tokens 8192</code></td>
+</tr>
+<tr>
+<td><a href="https://huggingface.co/microsoft/harrier-oss-v1-27b">microsoft/harrier-oss-v1-27b</a></td>
+<td>Gemma3 text + last-token pooling, linear RoPE scaling</td>
 <td><code>--max-batch-tokens 8192</code></td>
 </tr>
 <tr>
@@ -2152,6 +2193,11 @@ instructions and checkpoint formatting; they are separate from Nemotron ColEmbed
 <tr>
 <td><a href="https://huggingface.co/Snowflake/snowflake-arctic-embed-xs">Snowflake/snowflake-arctic-embed-xs</a></td>
 <td>BERT + sentence pooling</td>
+<td><code>--max-batch-tokens 8192</code></td>
+</tr>
+<tr>
+<td><a href="https://huggingface.co/tencent/KaLM-Embedding-Gemma3-12B-2511">tencent/KaLM-Embedding-Gemma3-12B-2511</a></td>
+<td>Gemma3 text + last-token pooling; <a href="#model-licenses">community license, not for EU use</a></td>
 <td><code>--max-batch-tokens 8192</code></td>
 </tr>
 <tr>
@@ -2710,6 +2756,77 @@ top-level image/video inputs are supported; video decoding requires <code>ffmpeg
 inside instructions or criteria are not implemented. BF16 weights require
 approximately 52 GB before inference buffers; validate batch limits against
 available GPU memory.</p>
+<h3 id="vela3-core-decisions">Vela3 core decisions</h3>
+<p>Vela3 models use <code>/v1/systemone</code> with the native LibTorch backend. The short
+aliases below and their full <code>vllm-sr/</code> IDs select <code>--decision-protocol vela3</code>
+automatically. For a local checkpoint directory, pass that protocol explicitly.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Native backbone</th>
+<th>Core question types</th>
+<th>Inputs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://huggingface.co/vllm-sr/vela3-fast">vela3-fast</a></td>
+<td>UltraBERT-380M with its distilled cosine + MLP decision head</td>
+<td><code>choice</code>, <code>noul</code></td>
+<td>Text or JSON</td>
+</tr>
+<tr>
+<td><a href="https://huggingface.co/vllm-sr/vela3-fast-vision">vela3-fast-vision</a></td>
+<td>UltraVBERT: UltraBERT + SigLIP + pixel-shuffle connector, using the decision-trained backbone</td>
+<td><code>choice</code>, <code>noul</code></td>
+<td>Text or JSON, optionally 1–3 shared images</td>
+</tr>
+<tr>
+<td><a href="https://huggingface.co/vllm-sr/vela3-lite">vela3-lite</a></td>
+<td>Pinned D3-lite / Qwen3.5-0.8B</td>
+<td><code>choice</code>, <code>noul</code>, <code>score</code></td>
+<td>Text or JSON, shared media through the D3 path</td>
+</tr>
+<tr>
+<td><a href="https://huggingface.co/vllm-sr/vela3-mini">vela3-mini</a></td>
+<td>Pinned D3-mini / Qwen3.5-4B</td>
+<td><code>choice</code>, <code>noul</code>, <code>score</code></td>
+<td>Text or JSON, shared media through the D3 path</td>
+</tr>
+<tr>
+<td><a href="https://huggingface.co/vllm-sr/vela3-flash">vela3-flash</a></td>
+<td>Pinned D3-flash / Qwen3.5-9B</td>
+<td><code>choice</code>, <code>noul</code>, <code>score</code></td>
+<td>Text or JSON, shared media through the D3 path</td>
+</tr>
+<tr>
+<td><a href="https://huggingface.co/vllm-sr/vela3-turbo">vela3-turbo</a></td>
+<td>Pinned D3-turbo / Qwen3.5-27B, prefix-bidirectional attention</td>
+<td><code>choice</code>, <code>noul</code>, <code>score</code></td>
+<td>Text or JSON, shared media through the D3 path</td>
+</tr>
+</tbody>
+</table>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>infinity_v3<span class="w"> </span>--model-id<span class="w"> </span>vela3-fast<span class="w"> </span>--max-batch-tokens<span class="w"> </span><span class="m">4096</span>
+</span></code></pre></div>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span><span class="nt">"state"</span><span class="p">:</span><span class="s2">"My card was charged twice. Please refund the duplicate."</span><span class="p">,</span><span class="nt">"questions"</span><span class="p">:{</span><span class="nt">"route"</span><span class="p">:{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"choice"</span><span class="p">,</span><span class="nt">"instructions"</span><span class="p">:</span><span class="s2">"What does the customer want?"</span><span class="p">,</span><span class="nt">"criteria"</span><span class="p">:{</span><span class="nt">"refund"</span><span class="p">:</span><span class="s2">"Money back for the duplicate charge"</span><span class="p">,</span><span class="nt">"cancel"</span><span class="p">:</span><span class="s2">"Cancel the order"</span><span class="p">}},</span><span class="nt">"urgent"</span><span class="p">:{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"noul"</span><span class="p">,</span><span class="nt">"instructions"</span><span class="p">:</span><span class="s2">"The customer needs a fast response."</span><span class="p">}}}</span>
+</span></code></pre></div>
+<p>This integration serves <strong>general decisions with task adapters off</strong>. Task-specific
+router signals, adapter opt-in, span extraction (including NER, PII, relations,
+evidence and hallucination spans), generated label definitions, Box/Track and OCR
+readouts are not implemented. Requests matching trained adapter routes are rejected
+instead of silently using a different head. Use a general question ID and wording
+for ordinary decisions; changing the ID is not a substitute for a trained router
+signal. The encoder models do not implement <code>score</code>, even though some family
+descriptions list it; the Qwen-based models do.</p>
+<p>The Qwen packages download the D3 base revision pinned in <code>vela3_config.json</code>,
+including its tokenizer, prompt and FP32 readout. They do not substitute the base
+model's current <code>main</code>. No checkpoint Python code executes in the server.
+CUDA defaults to BF16 for Vela encoders; all learned decision heads remain FP32.
+The maximum formatted input is 32,768 tokens, also bounded by the configured
+sequence and batch token limits. Inputs are never truncated. D3 video processing
+requires <code>ffmpeg</code> and <code>ffprobe</code>; the UltraVBERT encoder accepts images only.</p>
 <h2 id="model-licenses">Model licenses</h2>
 <p>Model weight licenses are separate from <a href="../../LICENSING/">Infinity's license</a>.
 Technical support includes checkpoints with non-commercial terms. The following
@@ -2739,6 +2856,11 @@ This is not an exhaustive license table for the catalog.</p>
 <td><code>Babelscape/wikineural-multilingual-ner</code></td>
 <td><a href="https://huggingface.co/Babelscape/wikineural-multilingual-ner/blob/main/README.md">CC-BY-NC-SA-4.0</a></td>
 <td>Multilingual NER</td>
+</tr>
+<tr>
+<td><code>tencent/KaLM-Embedding-Gemma3-12B-2511</code></td>
+<td><a href="https://huggingface.co/tencent/KaLM-Embedding-Gemma3-12B-2511/blob/main/LICENSE.txt">Tencent KaLM-Embedding community license</a>, not intended for use within the EU</td>
+<td>Text embeddings</td>
 </tr>
 </tbody>
 </table>
